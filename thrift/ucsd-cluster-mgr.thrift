@@ -1,4 +1,5 @@
 
+namespace py ucsd
 
 #
 # Data structures
@@ -22,6 +23,7 @@ struct Host {
 	4: required string assigned_project,
 	5: required bool netboot_enabled,
 	6: required string macaddr
+	7: required string tags
 }
 
 struct Project {
@@ -29,12 +31,12 @@ struct Project {
 	2: required string nfsrootpath,
 	3: required string kernel,
 	4: required string initrd,
-	5: list<string> parameters
+	5: optional string parameters
 }
 
 struct User {
 	1: required string name,
-	2: string fullname
+	2: optional string fullname
 }
 
 #
@@ -71,14 +73,18 @@ service ClusterManager {
 
 	void ping(),
 
-	void host_add(1:required Host host),
-	void host_remove(1:required string host),
+	bool host_add(1:required string host, 2:required string macaddr),
+	bool host_remove(1:required string host),
 
-	void project_add(1:required Project project),
-	void project_remove(1:required string project),
+	bool project_add(1:required string name,
+                   2:required string rootpath,
+                   3:required string kernel,
+                   4:required string initrd,
+                   5:string params),
+	bool project_remove(1:required string project),
 
-	void user_add(1:required User user),
-	void user_remove(1:required string user),
+	bool user_add(1:required string username, 2:required string fullname),
+	bool user_remove(1:required string user),
 	
 	#
 	# project/host/tag retrieval methods
@@ -87,7 +93,7 @@ service ClusterManager {
 	# if a bad tag is given since we shouldn't have to pre-define tags
 	#
 
-	list<Project> get_projects(),
+	list<string> get_projects(),
 
 	# project and/or tag can be specified to restrict the hosts returned
 	#  if you specify a tag, but no project, you get a client exception
@@ -113,9 +119,6 @@ service ClusterManager {
 		throws (1:BadHostException hostx),
 
 	void tag_add(1:required string host, 2:required string tag)
-		throws (1:BadHostException hostx),
-
-	void tag_remove(1:required string host, 2:required string tag)
 		throws (1:BadHostException hostx),
 
 	void tag_removeAll(1:required string host)
