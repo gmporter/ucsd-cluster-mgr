@@ -28,15 +28,25 @@ struct Host {
 
 struct Project {
 	1: required string name,
-	2: required string nfsrootpath,
-	3: required string kernel,
-	4: required string initrd,
-	5: optional string parameters
+  2: required string nfsserver,
+	3: required string nfsrootpath,
+	4: required string kernel,
+	5: required string initrd,
+	6: optional string parameters
 }
 
 struct User {
 	1: required string name,
 	2: optional string fullname
+}
+
+struct BootConfig {
+  1: required string project,
+  2: required string kernel,
+  3: required string initrd,
+  4: required string nfsserver,
+  5: required string nfsroot,
+  6: required string parameters
 }
 
 #
@@ -77,10 +87,11 @@ service ClusterManager {
 	bool host_remove(1:required string host),
 
 	bool project_add(1:required string name,
-                   2:required string rootpath,
-                   3:required string kernel,
-                   4:required string initrd,
-                   5:string params),
+                   2:required string nfsserver,
+                   3:required string rootpath,
+                   4:required string kernel,
+                   5:required string initrd,
+                   6:string params),
 	bool project_remove(1:required string project),
 
 	bool user_add(1:required string username, 2:required string fullname),
@@ -123,4 +134,10 @@ service ClusterManager {
 
 	void tag_removeAll(1:required string host)
 		throws (1:BadHostException hostx),
+
+  #
+  # lookup method used by the tftp server
+  #
+  BootConfig lookup(1:required string macaddr)
+    throws (1:BadHostException hostx)
 }
