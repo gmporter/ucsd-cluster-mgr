@@ -74,7 +74,7 @@ class ClusterManagerHandler:
     self.debug("  removed host %s" % hostname)
     return True
 
-  def project_add(self, name, rootpath, kernel, initrd, params):
+  def project_add(self, name, server, rootpath, kernel, initrd, params):
     self.debug("project_add")
 
     key = "project_%s" % name
@@ -84,6 +84,7 @@ class ClusterManagerHandler:
       return False
     
     self.r_server.hset(key, "name", name)
+    self.r_server.hset(key, "nfsserver", server)
     self.r_server.hset(key, "nfsroot", rootpath)
     self.r_server.hset(key, "kernel", kernel)
     self.r_server.hset(key, "initrd", initrd)
@@ -242,6 +243,50 @@ class ClusterManagerHandler:
 
     self.r_server.hset(key, "tags", None)
 
+  def lookup(self, macaddr):
+    self.debug("lookup")
+
+    # find a host with this macaddr
+    h = None
+    for hkey in self.r_server.keys('host_*'):
+      mac = self.r_server.hget(hkey, 'macaddr')
+      if mac.lower() == macaddr.lower():
+        host = hkey[5:]
+        self.debug('found a match for host %s' % host)
+
+        # is the host assigned to a project?
+        status = int(self.r_server.hget(hkey, 'status'))
+        if status != HostStatus.ASSIGNED:
+          self.debug('host %s was not in assigned mode' % host)
+          break
+
+        # lookup what project this host is assigned to
+        proj = self.r_server.hget(hkey, 'assigned_project')
+        projkey = 'project_' + proj
+        self.debug('host %s assigned to project %s' % (host,proj))
+
+        # is the project valid?
+        if not self.r_server.exists('project_' + proj):
+          self.debug('specified project %s is invalid' % proj)
+          break
+
+        # construct the bootconfig and return to the client
+        bc = BootConfig()
+
+        bc.project = proj
+        bc.kernel = self.r_server.hget(projkey, 'kernel')
+        bc.initrd = self.r_server.hget(projkey, 'initrd')
+        bc.nfsserver = self.r_server.hget(projkey, 'nfsserver')
+        bc.nfsroot = self.r_server.hget(projkey, 'nfsroot')
+        bc.parameters = self.r_server.hget(projkey, 'parameters')
+
+        self.debug("found bootconfig record: %s" % str(bc))
+
+        return bc
+
+    # didn't find a match for 'macaddr'
+    return None
+
 def start_managerd(debugmode, redis_server):
   print "Starting managerd daemon..."
 
@@ -254,7 +299,12 @@ def start_managerd(debugmode, redis_server):
   pfactory = TBinaryProtocol.TBinaryProtocolFactory()
 
   server = TServer.TThreadedServer(processor, transport, tfactory, pfactory)
-  server.serve()
+  try:
+    server.serve()
+  except KeyboardInterrupt:
+    pass
+  finally:
+    transport.close()
   print "done"
 
 def main():
