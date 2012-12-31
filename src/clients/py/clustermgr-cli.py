@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import sys, unittest, argparse, getpass
+import sys, unittest, argparse, getpass, os
 from urlparse import urlparse
-sys.path.append('../../managerd/gen-py')
+dir = os.path.dirname(__file__)
+sys.path.append(os.path.join(dir, '../../managerd/gen-py'))
 
 from thrift.transport import TTransport
 from thrift.transport import TSocket
@@ -27,8 +28,8 @@ def host_remove(client, args):
   return client.host_remove(args.hostname)
 
 def proj_add(client, args):
-  return client.project_add(args.name, args.rootpath, args.kernel,
-                            args.initrd, args.params)
+  return client.project_add(args.name, args.rootserver, args.rootpath,
+                            args.kernel, args.initrd, args.params)
 
 def proj_remove(client, args):
   return client.project_remove(args.name)
@@ -92,14 +93,16 @@ def connect_to_managerd(host, port):
   return (transport,client)
 
 def close_managerd(transport):
-  transport.close()
+  if transport:
+    transport.close()
 
 #
 # argument handling and main()
 #
 
 def main():
-  parser = argparse.ArgumentParser(description="Cluster manager client")
+  parser = argparse.ArgumentParser(description="Cluster manager client",
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
   parser.add_argument("-s", "--server", help="manager servername",
                       default="localhost")
@@ -126,6 +129,7 @@ def main():
   parser_projadd = subparsers.add_parser('project_add',
                                          help='add a new project')
   parser_projadd.add_argument('name', help='the project name')
+  parser_projadd.add_argument('rootserver', help='the nfs server')
   parser_projadd.add_argument('rootpath', help='the path to the root')
   parser_projadd.add_argument('kernel', help='the kernel version')
   parser_projadd.add_argument('initrd', help='the initrd version')
