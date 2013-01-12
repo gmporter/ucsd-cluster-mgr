@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys, unittest, argparse, getpass, os
 from urlparse import urlparse
@@ -42,7 +42,7 @@ def user_remove(client, args):
 
 def get_projects(client, args):
   for project in client.get_projects():
-    print project
+    print(project)
 
 def get_hosts(client, args):
   pairs = args.projspec.split(":")
@@ -53,19 +53,19 @@ def get_hosts(client, args):
   hosts = client.get_hosts(project, tag)
 
   for host in hosts:
-    print host.name
+    print(host.name)
 
 def get_tags(client, args):
   tags = client.get_tags(args.host)
 
   for tag in tags:
-    print tag
+    print(tag)
 
 def mapping(client, args):
   hosts = client.get_hosts(None, None)
 
   for host in hosts:
-    print '%s: <%s> %s' % (host.name, host.assigned_project, host.tags)
+    print('%s: <%s> %s' % (host.name, host.assigned_project, host.tags))
 
 def host_assign(client, args):
   client.host_assign(args.host, args.project, args.user)
@@ -92,8 +92,8 @@ def connect_to_managerd(host, port):
   try:
     transport.open()
   except TTransport.TTransportException as te:
-    print "Error connecting to cluster manager daemon"
-    print str(te)
+    print("Error connecting to cluster manager daemon")
+    print(str(te))
     sys.exit(1)
 
   return (transport,client)
