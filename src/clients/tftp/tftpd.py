@@ -343,7 +343,7 @@ def main():
     (transport, client) = connect_to_managerd(args.server, args.port)
 
     if args.test:
-      lookup_file('/pxelinux.cfg/01-' + args.test[0])
+      lookup_file('/pxelinux.cfg/01-' + args.test[0].replace(':','-'))
       close_managerd(transport)
       sys.exit(0)
 
