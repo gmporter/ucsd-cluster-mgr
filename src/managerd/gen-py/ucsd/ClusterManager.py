@@ -43,10 +43,11 @@ class Iface:
     """
     pass
 
-  def project_add(self, name, rootpath, kernel, initrd, params):
+  def project_add(self, name, nfsserver, rootpath, kernel, initrd, params):
     """
     Parameters:
      - name
+     - nfsserver
      - rootpath
      - kernel
      - initrd
@@ -122,6 +123,13 @@ class Iface:
     """
     Parameters:
      - host
+    """
+    pass
+
+  def lookup(self, macaddr):
+    """
+    Parameters:
+     - macaddr
     """
     pass
 
@@ -248,22 +256,24 @@ class Client(Iface):
       return result.success
     raise TApplicationException(TApplicationException.MISSING_RESULT, "host_remove failed: unknown result");
 
-  def project_add(self, name, rootpath, kernel, initrd, params):
+  def project_add(self, name, nfsserver, rootpath, kernel, initrd, params):
     """
     Parameters:
      - name
+     - nfsserver
      - rootpath
      - kernel
      - initrd
      - params
     """
-    self.send_project_add(name, rootpath, kernel, initrd, params)
+    self.send_project_add(name, nfsserver, rootpath, kernel, initrd, params)
     return self.recv_project_add()
 
-  def send_project_add(self, name, rootpath, kernel, initrd, params):
+  def send_project_add(self, name, nfsserver, rootpath, kernel, initrd, params):
     self._oprot.writeMessageBegin('project_add', TMessageType.CALL, self._seqid)
     args = project_add_args()
     args.name = name
+    args.nfsserver = nfsserver
     args.rootpath = rootpath
     args.kernel = kernel
     args.initrd = initrd
@@ -601,6 +611,38 @@ class Client(Iface):
       raise result.hostx
     return
 
+  def lookup(self, macaddr):
+    """
+    Parameters:
+     - macaddr
+    """
+    self.send_lookup(macaddr)
+    return self.recv_lookup()
+
+  def send_lookup(self, macaddr):
+    self._oprot.writeMessageBegin('lookup', TMessageType.CALL, self._seqid)
+    args = lookup_args()
+    args.macaddr = macaddr
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_lookup(self, ):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = lookup_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    if result.hostx is not None:
+      raise result.hostx
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "lookup failed: unknown result");
+
 
 class Processor(Iface, TProcessor):
   def __init__(self, handler):
@@ -621,6 +663,7 @@ class Processor(Iface, TProcessor):
     self._processMap["host_release"] = Processor.process_host_release
     self._processMap["tag_add"] = Processor.process_tag_add
     self._processMap["tag_removeAll"] = Processor.process_tag_removeAll
+    self._processMap["lookup"] = Processor.process_lookup
 
   def process(self, iprot, oprot):
     (name, type, seqid) = iprot.readMessageBegin()
@@ -689,7 +732,7 @@ class Processor(Iface, TProcessor):
     args.read(iprot)
     iprot.readMessageEnd()
     result = project_add_result()
-    result.success = self._handler.project_add(args.name, args.rootpath, args.kernel, args.initrd, args.params)
+    result.success = self._handler.project_add(args.name, args.nfsserver, args.rootpath, args.kernel, args.initrd, args.params)
     oprot.writeMessageBegin("project_add", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -825,6 +868,20 @@ class Processor(Iface, TProcessor):
     except BadHostException as hostx:
       result.hostx = hostx
     oprot.writeMessageBegin("tag_removeAll", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_lookup(self, seqid, iprot, oprot):
+    args = lookup_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = lookup_result()
+    try:
+      result.success = self._handler.lookup(args.macaddr)
+    except BadHostException as hostx:
+      result.hostx = hostx
+    oprot.writeMessageBegin("lookup", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -1300,6 +1357,7 @@ class project_add_args:
   """
   Attributes:
    - name
+   - nfsserver
    - rootpath
    - kernel
    - initrd
@@ -1309,14 +1367,16 @@ class project_add_args:
   thrift_spec = (
     None, # 0
     (1, TType.STRING, 'name', None, None, ), # 1
-    (2, TType.STRING, 'rootpath', None, None, ), # 2
-    (3, TType.STRING, 'kernel', None, None, ), # 3
-    (4, TType.STRING, 'initrd', None, None, ), # 4
-    (5, TType.STRING, 'params', None, None, ), # 5
+    (2, TType.STRING, 'nfsserver', None, None, ), # 2
+    (3, TType.STRING, 'rootpath', None, None, ), # 3
+    (4, TType.STRING, 'kernel', None, None, ), # 4
+    (5, TType.STRING, 'initrd', None, None, ), # 5
+    (6, TType.STRING, 'params', None, None, ), # 6
   )
 
-  def __init__(self, name=None, rootpath=None, kernel=None, initrd=None, params=None,):
+  def __init__(self, name=None, nfsserver=None, rootpath=None, kernel=None, initrd=None, params=None,):
     self.name = name
+    self.nfsserver = nfsserver
     self.rootpath = rootpath
     self.kernel = kernel
     self.initrd = initrd
@@ -1338,20 +1398,25 @@ class project_add_args:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRING:
-          self.rootpath = iprot.readString();
+          self.nfsserver = iprot.readString();
         else:
           iprot.skip(ftype)
       elif fid == 3:
         if ftype == TType.STRING:
-          self.kernel = iprot.readString();
+          self.rootpath = iprot.readString();
         else:
           iprot.skip(ftype)
       elif fid == 4:
         if ftype == TType.STRING:
-          self.initrd = iprot.readString();
+          self.kernel = iprot.readString();
         else:
           iprot.skip(ftype)
       elif fid == 5:
+        if ftype == TType.STRING:
+          self.initrd = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 6:
         if ftype == TType.STRING:
           self.params = iprot.readString();
         else:
@@ -1370,20 +1435,24 @@ class project_add_args:
       oprot.writeFieldBegin('name', TType.STRING, 1)
       oprot.writeString(self.name)
       oprot.writeFieldEnd()
+    if self.nfsserver is not None:
+      oprot.writeFieldBegin('nfsserver', TType.STRING, 2)
+      oprot.writeString(self.nfsserver)
+      oprot.writeFieldEnd()
     if self.rootpath is not None:
-      oprot.writeFieldBegin('rootpath', TType.STRING, 2)
+      oprot.writeFieldBegin('rootpath', TType.STRING, 3)
       oprot.writeString(self.rootpath)
       oprot.writeFieldEnd()
     if self.kernel is not None:
-      oprot.writeFieldBegin('kernel', TType.STRING, 3)
+      oprot.writeFieldBegin('kernel', TType.STRING, 4)
       oprot.writeString(self.kernel)
       oprot.writeFieldEnd()
     if self.initrd is not None:
-      oprot.writeFieldBegin('initrd', TType.STRING, 4)
+      oprot.writeFieldBegin('initrd', TType.STRING, 5)
       oprot.writeString(self.initrd)
       oprot.writeFieldEnd()
     if self.params is not None:
-      oprot.writeFieldBegin('params', TType.STRING, 5)
+      oprot.writeFieldBegin('params', TType.STRING, 6)
       oprot.writeString(self.params)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -1392,6 +1461,8 @@ class project_add_args:
   def validate(self):
     if self.name is None:
       raise TProtocol.TProtocolException(message='Required field name is unset!')
+    if self.nfsserver is None:
+      raise TProtocol.TProtocolException(message='Required field nfsserver is unset!')
     if self.rootpath is None:
       raise TProtocol.TProtocolException(message='Required field rootpath is unset!')
     if self.kernel is None:
@@ -2801,6 +2872,141 @@ class tag_removeAll_result:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('tag_removeAll_result')
+    if self.hostx is not None:
+      oprot.writeFieldBegin('hostx', TType.STRUCT, 1)
+      self.hostx.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class lookup_args:
+  """
+  Attributes:
+   - macaddr
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'macaddr', None, None, ), # 1
+  )
+
+  def __init__(self, macaddr=None,):
+    self.macaddr = macaddr
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.macaddr = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('lookup_args')
+    if self.macaddr is not None:
+      oprot.writeFieldBegin('macaddr', TType.STRING, 1)
+      oprot.writeString(self.macaddr)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.macaddr is None:
+      raise TProtocol.TProtocolException(message='Required field macaddr is unset!')
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class lookup_result:
+  """
+  Attributes:
+   - success
+   - hostx
+  """
+
+  thrift_spec = (
+    (0, TType.STRUCT, 'success', (BootConfig, BootConfig.thrift_spec), None, ), # 0
+    (1, TType.STRUCT, 'hostx', (BadHostException, BadHostException.thrift_spec), None, ), # 1
+  )
+
+  def __init__(self, success=None, hostx=None,):
+    self.success = success
+    self.hostx = hostx
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.STRUCT:
+          self.success = BootConfig()
+          self.success.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 1:
+        if ftype == TType.STRUCT:
+          self.hostx = BadHostException()
+          self.hostx.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('lookup_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.STRUCT, 0)
+      self.success.write(oprot)
+      oprot.writeFieldEnd()
     if self.hostx is not None:
       oprot.writeFieldBegin('hostx', TType.STRUCT, 1)
       self.hostx.write(oprot)

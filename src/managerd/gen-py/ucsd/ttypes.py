@@ -256,6 +256,7 @@ class Project:
   """
   Attributes:
    - name
+   - nfsserver
    - nfsrootpath
    - kernel
    - initrd
@@ -265,14 +266,16 @@ class Project:
   thrift_spec = (
     None, # 0
     (1, TType.STRING, 'name', None, None, ), # 1
-    (2, TType.STRING, 'nfsrootpath', None, None, ), # 2
-    (3, TType.STRING, 'kernel', None, None, ), # 3
-    (4, TType.STRING, 'initrd', None, None, ), # 4
-    (5, TType.STRING, 'parameters', None, None, ), # 5
+    (2, TType.STRING, 'nfsserver', None, None, ), # 2
+    (3, TType.STRING, 'nfsrootpath', None, None, ), # 3
+    (4, TType.STRING, 'kernel', None, None, ), # 4
+    (5, TType.STRING, 'initrd', None, None, ), # 5
+    (6, TType.STRING, 'parameters', None, None, ), # 6
   )
 
-  def __init__(self, name=None, nfsrootpath=None, kernel=None, initrd=None, parameters=None,):
+  def __init__(self, name=None, nfsserver=None, nfsrootpath=None, kernel=None, initrd=None, parameters=None,):
     self.name = name
+    self.nfsserver = nfsserver
     self.nfsrootpath = nfsrootpath
     self.kernel = kernel
     self.initrd = initrd
@@ -294,20 +297,25 @@ class Project:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRING:
-          self.nfsrootpath = iprot.readString();
+          self.nfsserver = iprot.readString();
         else:
           iprot.skip(ftype)
       elif fid == 3:
         if ftype == TType.STRING:
-          self.kernel = iprot.readString();
+          self.nfsrootpath = iprot.readString();
         else:
           iprot.skip(ftype)
       elif fid == 4:
         if ftype == TType.STRING:
-          self.initrd = iprot.readString();
+          self.kernel = iprot.readString();
         else:
           iprot.skip(ftype)
       elif fid == 5:
+        if ftype == TType.STRING:
+          self.initrd = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 6:
         if ftype == TType.STRING:
           self.parameters = iprot.readString();
         else:
@@ -326,20 +334,24 @@ class Project:
       oprot.writeFieldBegin('name', TType.STRING, 1)
       oprot.writeString(self.name)
       oprot.writeFieldEnd()
+    if self.nfsserver is not None:
+      oprot.writeFieldBegin('nfsserver', TType.STRING, 2)
+      oprot.writeString(self.nfsserver)
+      oprot.writeFieldEnd()
     if self.nfsrootpath is not None:
-      oprot.writeFieldBegin('nfsrootpath', TType.STRING, 2)
+      oprot.writeFieldBegin('nfsrootpath', TType.STRING, 3)
       oprot.writeString(self.nfsrootpath)
       oprot.writeFieldEnd()
     if self.kernel is not None:
-      oprot.writeFieldBegin('kernel', TType.STRING, 3)
+      oprot.writeFieldBegin('kernel', TType.STRING, 4)
       oprot.writeString(self.kernel)
       oprot.writeFieldEnd()
     if self.initrd is not None:
-      oprot.writeFieldBegin('initrd', TType.STRING, 4)
+      oprot.writeFieldBegin('initrd', TType.STRING, 5)
       oprot.writeString(self.initrd)
       oprot.writeFieldEnd()
     if self.parameters is not None:
-      oprot.writeFieldBegin('parameters', TType.STRING, 5)
+      oprot.writeFieldBegin('parameters', TType.STRING, 6)
       oprot.writeString(self.parameters)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -348,6 +360,8 @@ class Project:
   def validate(self):
     if self.name is None:
       raise TProtocol.TProtocolException(message='Required field name is unset!')
+    if self.nfsserver is None:
+      raise TProtocol.TProtocolException(message='Required field nfsserver is unset!')
     if self.nfsrootpath is None:
       raise TProtocol.TProtocolException(message='Required field nfsrootpath is unset!')
     if self.kernel is None:
@@ -428,6 +442,138 @@ class User:
   def validate(self):
     if self.name is None:
       raise TProtocol.TProtocolException(message='Required field name is unset!')
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class BootConfig:
+  """
+  Attributes:
+   - project
+   - kernel
+   - initrd
+   - nfsserver
+   - nfsroot
+   - parameters
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'project', None, None, ), # 1
+    (2, TType.STRING, 'kernel', None, None, ), # 2
+    (3, TType.STRING, 'initrd', None, None, ), # 3
+    (4, TType.STRING, 'nfsserver', None, None, ), # 4
+    (5, TType.STRING, 'nfsroot', None, None, ), # 5
+    (6, TType.STRING, 'parameters', None, None, ), # 6
+  )
+
+  def __init__(self, project=None, kernel=None, initrd=None, nfsserver=None, nfsroot=None, parameters=None,):
+    self.project = project
+    self.kernel = kernel
+    self.initrd = initrd
+    self.nfsserver = nfsserver
+    self.nfsroot = nfsroot
+    self.parameters = parameters
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.project = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.kernel = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.initrd = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.STRING:
+          self.nfsserver = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.STRING:
+          self.nfsroot = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 6:
+        if ftype == TType.STRING:
+          self.parameters = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('BootConfig')
+    if self.project is not None:
+      oprot.writeFieldBegin('project', TType.STRING, 1)
+      oprot.writeString(self.project)
+      oprot.writeFieldEnd()
+    if self.kernel is not None:
+      oprot.writeFieldBegin('kernel', TType.STRING, 2)
+      oprot.writeString(self.kernel)
+      oprot.writeFieldEnd()
+    if self.initrd is not None:
+      oprot.writeFieldBegin('initrd', TType.STRING, 3)
+      oprot.writeString(self.initrd)
+      oprot.writeFieldEnd()
+    if self.nfsserver is not None:
+      oprot.writeFieldBegin('nfsserver', TType.STRING, 4)
+      oprot.writeString(self.nfsserver)
+      oprot.writeFieldEnd()
+    if self.nfsroot is not None:
+      oprot.writeFieldBegin('nfsroot', TType.STRING, 5)
+      oprot.writeString(self.nfsroot)
+      oprot.writeFieldEnd()
+    if self.parameters is not None:
+      oprot.writeFieldBegin('parameters', TType.STRING, 6)
+      oprot.writeString(self.parameters)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.project is None:
+      raise TProtocol.TProtocolException(message='Required field project is unset!')
+    if self.kernel is None:
+      raise TProtocol.TProtocolException(message='Required field kernel is unset!')
+    if self.initrd is None:
+      raise TProtocol.TProtocolException(message='Required field initrd is unset!')
+    if self.nfsserver is None:
+      raise TProtocol.TProtocolException(message='Required field nfsserver is unset!')
+    if self.nfsroot is None:
+      raise TProtocol.TProtocolException(message='Required field nfsroot is unset!')
+    if self.parameters is None:
+      raise TProtocol.TProtocolException(message='Required field parameters is unset!')
     return
 
 

@@ -61,6 +61,12 @@ def get_tags(client, args):
   for tag in tags:
     print tag
 
+def mapping(client, args):
+  hosts = client.get_hosts(None, None)
+
+  for host in hosts:
+    print '%s: <%s> %s' % (host.name, host.assigned_project, host.tags)
+
 def host_assign(client, args):
   client.host_assign(args.host, args.project, args.user)
 
@@ -171,6 +177,10 @@ def main():
   parser_gettags = subparsers.add_parser('get_tags', help='query tags')
   parser_gettags.add_argument('host', help='host to query')
   parser_gettags.set_defaults(func=get_tags)
+  
+  # mapping
+  parser_mapping = subparsers.add_parser('mapping', help='host mapping')
+  parser_mapping.set_defaults(func=mapping)
 
   # host_assign
   parser_hostassign = subparsers.add_parser('host_assign',

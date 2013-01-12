@@ -27,7 +27,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  void ping()'
   print '  bool host_add(string host, string macaddr)'
   print '  bool host_remove(string host)'
-  print '  bool project_add(string name, string rootpath, string kernel, string initrd, string params)'
+  print '  bool project_add(string name, string nfsserver, string rootpath, string kernel, string initrd, string params)'
   print '  bool project_remove(string project)'
   print '  bool user_add(string username, string fullname)'
   print '  bool user_remove(string user)'
@@ -38,6 +38,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  void host_release(string host)'
   print '  void tag_add(string host, string tag)'
   print '  void tag_removeAll(string host)'
+  print '  BootConfig lookup(string macaddr)'
   print ''
   sys.exit(0)
 
@@ -114,10 +115,10 @@ elif cmd == 'host_remove':
   pp.pprint(client.host_remove(args[0],))
 
 elif cmd == 'project_add':
-  if len(args) != 5:
-    print 'project_add requires 5 args'
+  if len(args) != 6:
+    print 'project_add requires 6 args'
     sys.exit(1)
-  pp.pprint(client.project_add(args[0],args[1],args[2],args[3],args[4],))
+  pp.pprint(client.project_add(args[0],args[1],args[2],args[3],args[4],args[5],))
 
 elif cmd == 'project_remove':
   if len(args) != 1:
@@ -178,6 +179,12 @@ elif cmd == 'tag_removeAll':
     print 'tag_removeAll requires 1 args'
     sys.exit(1)
   pp.pprint(client.tag_removeAll(args[0],))
+
+elif cmd == 'lookup':
+  if len(args) != 1:
+    print 'lookup requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.lookup(args[0],))
 
 else:
   print 'Unrecognized method %s' % cmd

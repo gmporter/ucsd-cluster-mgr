@@ -43,7 +43,7 @@ class ClusterManagerHandler:
     return True
 
   def host_add(self, hostname, macaddr):
-    self.debug("host_add()")
+    self.debug("host_add(%s,%s)" % (hostname, macaddr))
 
     key = "host_%s" % hostname
     if self.r_server.exists(key):
@@ -53,17 +53,17 @@ class ClusterManagerHandler:
     
     self.r_server.hset(key, "name", hostname)
     self.r_server.hset(key, "status", HostStatus.AVAILABLE)
-    self.r_server.hset(key, "owner", None)
-    self.r_server.hset(key, "assigned_project", None)
+    self.r_server.hset(key, "owner", '')
+    self.r_server.hset(key, "assigned_project", '')
     self.r_server.hset(key, "netboot_enabled", True)
     self.r_server.hset(key, "macaddr", macaddr)
-    self.r_server.hset(key, "tags", None)
+    self.r_server.hset(key, "tags", '')
 
     self.debug("  added host %s with mac %s" % (hostname, macaddr))
     return True
 
   def host_remove(self, hostname):
-    self.debug("host_remove()")
+    self.debug("host_remove(%s)" % hostname)
 
     key = "host_%s" % hostname
     if not self.r_server.exists(key):
@@ -75,7 +75,7 @@ class ClusterManagerHandler:
     return True
 
   def project_add(self, name, server, rootpath, kernel, initrd, params):
-    self.debug("project_add")
+    self.debug("project_add %s" % name)
 
     key = "project_%s" % name
     if self.r_server.exists(key):
@@ -94,7 +94,7 @@ class ClusterManagerHandler:
     return True
 
   def project_remove(self, projectname):
-    self.debug("project_remove")
+    self.debug("project_remove %s" % projectname)
 
     key = "project_%s" % projectname
     if not self.r_server.exists(key):
@@ -106,7 +106,7 @@ class ClusterManagerHandler:
     return True
 
   def user_add(self, username, fullname):
-    self.debug("user_add")
+    self.debug("user_add %s" % username)
 
     key = "user_%s" % username
     if self.r_server.exists(key):
@@ -121,7 +121,7 @@ class ClusterManagerHandler:
     return True
 
   def user_remove(self, username):
-    self.debug("user_remove")
+    self.debug("user_remove %s" % username)
 
     key = "user_%s" % username
     if not self.r_server.exists(key):
@@ -165,26 +165,26 @@ class ClusterManagerHandler:
 
     return hosts
 
-  def get_hosts(self, project, tag):
-    self.debug("get_hosts")
+  def get_hosts(self, project=None, tag=None):
+    self.debug("get_hosts %s %s" % (project, tag))
 
     # all hosts
     hkeys = self.r_server.keys("host_*")
 
     # if project is specified, filter all but hosts in that project
-    if project is not None and project is not "":
+    if project is not None and project is not '':
       hkeys = [host for host in hkeys if
         self.r_server.hget(host,"assigned_project") == project]
 
     # if tag is specified, filter all but hosts with that tag
-    if tag is not None and tag is not "":
+    if tag is not None and tag is not '':
       hkeys = [host for host in hkeys if
-        tag in self.r_server.hget(host,"tags").split(",")]
+        tag in self.r_server.hget(host,"tags").split()]
 
     return self.__materialize_hosts(hkeys)
 
   def get_tags(self, host):
-    self.debug("get_tags")
+    self.debug("get_tags %s" % host)
     
     key = "host_%s" % host
     if not self.r_server.exists(key):
@@ -193,7 +193,7 @@ class ClusterManagerHandler:
       return self.r_server.hget(key, "tags").split(",")
   
   def host_assign(self, host, project, user):
-    self.debug("host_assign")
+    self.debug("host_assign %s %s %s" % (host,project,user))
 
     key = "host_%s" % host
     if not self.r_server.exists(key):
@@ -202,49 +202,50 @@ class ClusterManagerHandler:
 
     # we should probably sanity check the project and user they gave us
     self.r_server.hset(key, "assigned_project", project)
-    self.r_server.hset(key, "tags", None)
+    self.r_server.hset(key, "tags", '')
     self.r_server.hset(key, "owner", user)
     self.r_server.hset(key, "status", HostStatus.ASSIGNED)
 
     return True
 
   def host_release(self, host):
-    self.debug("host_release")
+    self.debug("host_release %s" % host)
 
     key = "host_%s" % host
     if not self.r_server.exists(key):
       self.debug(" host %s didn't exist" % host)
 
-    self.r_server.hset(key, "assigned_project", None)
-    self.r_server.hset(key, "tags", None)
-    self.r_server.hset(key, "owner", None)
+    self.r_server.hset(key, "assigned_project", '')
+    self.r_server.hset(key, "tags", '')
+    self.r_server.hset(key, "owner", '')
     self.r_server.hset(key, "status", HostStatus.AVAILABLE)
 
     return True
 
   def tag_add(self, host, tag):
-    self.debug("tag_add")
+    self.debug("tag_add %s %s" % (host, tag))
 
     key = "host_%s" % host
     if not self.r_server.exists(key):
       self.debug(" host %s didn't exist" % host)
 
     old_tags = self.r_server.hget(key, "tags")
-    self.r_server.hset(key, "tags", old_tags + "," + tag)
+    new_tags = old_tags + " " + tag
+    self.r_server.hset(key, "tags", new_tags)
 
     return True
 
   def tag_removeAll(self, host):
-    self.debug("tag_removeAll")
+    self.debug("tag_removeAll %s" % host)
 
     key = "host_%s" % host
     if not self.r_server.exists(key):
       self.debug(" host %s didn't exist" % host)
 
-    self.r_server.hset(key, "tags", None)
+    self.r_server.hset(key, "tags", '')
 
   def lookup(self, macaddr):
-    self.debug("lookup")
+    self.debug("lookup %s" % macaddr)
 
     # find a host with this macaddr
     h = None
